@@ -216,3 +216,21 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+*.egg-info/
+
+# Node
+node_modules/
+frontend/dist/
+
+# Env
+.env
+
+# Editors/OS
+.vscode/
+.idea/
+.DS_Store
