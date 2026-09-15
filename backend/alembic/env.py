@@ -23,9 +23,10 @@ config.set_main_option("sqlalchemy.url", settings.database_url)
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-# add your model's MetaData object here
-# for 'autogenerate' support
-target_metadata = None  # no ORM models yet — baseline only
+from src.infrastructure.persistence.base import Base
+from src.infrastructure.persistence import models  # noqa: F401 — import registers DeviceRow on Base.metadata
+
+target_metadata = Base.metadata
 
 
 def run_migrations_offline() -> None:

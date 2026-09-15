@@ -16,3 +16,10 @@ def check_db_connection() -> str:
     except Exception as e:
         print(f"DB connection failed: {e}")
         return "fail"
+
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
