@@ -21,3 +21,9 @@ class Location:
 @dataclass(frozen=True)
 class LocationConfig:
     location: Location
+
+
+@dataclass(frozen=True)
+class LocationSummary:
+    id: UUID
+    name: str

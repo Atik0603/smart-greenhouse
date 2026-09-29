@@ -2,7 +2,7 @@ from uuid import UUID
 
 from src.application.locations.dto import LocationConfigCreateRequest
 from src.application.locations.mappers import build_config_from_request
-from src.domain.locations.entity import Location
+from src.domain.locations.entity import Location, LocationSummary
 from src.domain.locations.errors import LocationNotFoundError
 from src.infrastructure.persistence.location_repository import LocationRepository
 
@@ -20,3 +20,10 @@ class LocationConfigService:
         if location is None:
             raise LocationNotFoundError(location_id)
         return location
+
+    def list_locations(self) -> list[LocationSummary]:
+        return self.repository.list_locations()
+
+    def delete_location(self, location_id: UUID) -> None:
+        if not self.repository.delete_location(location_id):
+            raise LocationNotFoundError(location_id)

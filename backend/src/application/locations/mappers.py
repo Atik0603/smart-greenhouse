@@ -7,7 +7,7 @@ from src.application.locations.dto import (
     ZoneReadDto,
 )
 from src.domain.locations.config_builder import LocationConfigBuilder
-from src.domain.locations.entity import Location, LocationConfig, Zone
+from src.domain.locations.entity import Location, LocationConfig, LocationSummary, Zone
 
 
 # --- Request DTO -> builder steps -> domain ---
@@ -51,3 +51,6 @@ def location_config_to_dto(location: Location) -> LocationConfigResponse:
         location=summary,
         zones=[zone_to_dto(z, summary.id) for z in location.zones],
     )
+
+def location_summary_to_dto(summary: LocationSummary) -> LocationSummaryDto:
+    return LocationSummaryDto(id=summary.id, name=summary.name)

@@ -2,7 +2,7 @@ from uuid import UUID
 
 from sqlalchemy.orm import Session
 
-from src.domain.locations.entity import Location, LocationConfig, Zone
+from src.domain.locations.entity import Location, LocationConfig, Zone, LocationSummary
 from src.infrastructure.persistence.models import LocationRow, ZoneRow
 
 
@@ -65,3 +65,15 @@ class LocationRepository:
             moisture_threshold_high=row.moisture_threshold_high,
             schedule=row.schedule,
         )
+
+    def list_locations(self) -> list[LocationSummary]:
+        rows = self.db.query(LocationRow).order_by(LocationRow.created_at.desc()).all()
+        return [LocationSummary(id=row.id, name=row.name) for row in rows]
+
+    def delete_location(self, location_id: UUID) -> bool:
+        row = self.db.get(LocationRow, location_id)
+        if row is None:
+            return False
+        self.db.delete(row)
+        self.db.commit()
+        return True

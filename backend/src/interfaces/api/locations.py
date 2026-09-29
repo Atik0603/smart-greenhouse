@@ -7,8 +7,12 @@ from src.application.locations.config_service import LocationConfigService
 from src.application.locations.dto import (
     LocationConfigCreateRequest,
     LocationConfigResponse,
+    LocationSummaryDto,
 )
-from src.application.locations.mappers import location_config_to_dto
+from src.application.locations.mappers import (
+    location_config_to_dto,
+    location_summary_to_dto,
+)
 from src.domain.locations.errors import ConfigurationError, LocationNotFoundError
 from src.infrastructure.db import get_db
 from src.infrastructure.persistence.location_repository import LocationRepository
@@ -18,6 +22,17 @@ router = APIRouter(prefix="/api/locations", tags=["locations"])
 
 def get_config_service(db: Session = Depends(get_db)) -> LocationConfigService:
     return LocationConfigService(LocationRepository(db))
+
+
+@router.get(
+    "",
+    response_model=list[LocationSummaryDto],
+    summary="List saved locations (newest first)",
+)
+def list_locations(
+    service: LocationConfigService = Depends(get_config_service),
+) -> list[LocationSummaryDto]:
+    return [location_summary_to_dto(s) for s in service.list_locations()]
 
 
 @router.post(
@@ -51,3 +66,18 @@ def get_location_config(
     except LocationNotFoundError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
     return location_config_to_dto(location)
+
+
+@router.delete(
+    "/{location_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Delete a location and its zones; its devices become unassigned",
+)
+def delete_location(
+    location_id: UUID,
+    service: LocationConfigService = Depends(get_config_service),
+) -> None:
+    try:
+        service.delete_location(location_id)
+    except LocationNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
