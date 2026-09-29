@@ -7,6 +7,8 @@ from src.interfaces.api.health import router as health_router
 
 from src.interfaces.api.sensors import router as sensors_router
 
+from src.interfaces.api.devices import router as devices_router
+
 app = FastAPI(title="Smart Greenhouse API", docs_url=None)  # disable built-in Swagger /docs
 
 app.add_middleware(
@@ -19,6 +21,7 @@ app.add_middleware(
 
 app.include_router(health_router)
 app.include_router(sensors_router)
+app.include_router(devices_router)
 
 
 @app.get("/scalar", include_in_schema=False)
