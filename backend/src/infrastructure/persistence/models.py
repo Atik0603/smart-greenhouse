@@ -20,6 +20,9 @@ class DeviceRow(Base):
     role: Mapped[str] = mapped_column(
         String(32), nullable=False, server_default="sensor"
     )
+    device_family: Mapped[str] = mapped_column(
+        String(32), nullable=False, server_default="simulation"
+    )
     display_name: Mapped[str | None] = mapped_column(String(128), nullable=True)
     default_config: Mapped[dict] = mapped_column(
         JSONB, nullable=False, server_default="{}"
@@ -28,4 +31,5 @@ class DeviceRow(Base):
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
 
-    __table_args__ = (Index("ix_devices_role", "role"),)
+    __table_args__ = (Index("ix_devices_role", "role"),
+                      Index("ix_devices_family", "device_family"),)
