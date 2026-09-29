@@ -1,20 +1,29 @@
 import { useEffect, useState } from "react";
 import {
+  assignDeviceZone,
   listDevices,
   provisionFamily,
   type DeviceDto,
   type DeviceFamily,
 } from "../../services/api";
+import { useZoneOptions } from "../config/useZoneOptions";
 import { DeviceFamilySwitcher } from "./DeviceFamilySwitcher";
 import { DeviceList } from "./DeviceList";
 
-export function DevicesSection() {
+interface Props {
+  configVersion?: number;         // bumped when locations/zones change
+  onDevicesChanged?: () => void;  // tell others a device's zone changed
+}
+
+export function DevicesSection({ configVersion = 0, onDevicesChanged }: Props) {
   const [family, setFamily] = useState<DeviceFamily>("simulation");
   const [devices, setDevices] = useState<DeviceDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [provisioning, setProvisioning] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
+
+  const { groups: zoneGroups, error: zoneError } = useZoneOptions(configVersion);
 
   useEffect(() => {
     let ignore = false;
@@ -35,7 +44,7 @@ export function DevicesSection() {
     return () => {
       ignore = true;
     };
-  }, [family, reloadKey]);
+  }, [family, reloadKey, configVersion]);
 
   async function handleProvision() {
     setProvisioning(true);
@@ -48,6 +57,12 @@ export function DevicesSection() {
     } finally {
       setProvisioning(false);
     }
+  }
+
+  async function handleAssignZone(deviceId: string, zoneId: string | null) {
+    const updated = await assignDeviceZone(deviceId, zoneId);
+    setDevices((prev) => prev.map((d) => (d.id === updated.id ? updated : d)));
+    onDevicesChanged?.();
   }
 
   return (
@@ -66,7 +81,14 @@ export function DevicesSection() {
           </button>
         </div>
       </div>
-      <DeviceList devices={devices} loading={loading} error={error} />
+      {zoneError && <p className="text-xs text-red-600">Could not load zones: {zoneError}</p>}
+      <DeviceList
+        devices={devices}
+        loading={loading}
+        error={error}
+        zoneGroups={zoneGroups}
+        onAssignZone={handleAssignZone}
+      />
     </div>
   );
 }
