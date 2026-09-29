@@ -1,9 +1,9 @@
 from uuid import UUID
-
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from src.domain.locations.entity import Location, LocationConfig, Zone, LocationSummary
-from src.infrastructure.persistence.models import LocationRow, ZoneRow
+from src.infrastructure.persistence.models import DeviceRow, LocationRow, ZoneRow
 
 
 class LocationRepository:
@@ -83,3 +83,57 @@ class LocationRepository:
         if row is None:
             return None
         return self._to_zone(row), row.location_id
+
+    def location_exists(self, location_id: UUID) -> bool:
+        return self.db.get(LocationRow, location_id) is not None
+
+    def count_zones(self, location_id: UUID) -> int:
+        return self.db.query(ZoneRow).filter(ZoneRow.location_id == location_id).count()
+
+    def zone_name_exists(
+        self, location_id: UUID, name: str, exclude_zone_id: UUID | None = None
+    ) -> bool:
+        query = self.db.query(ZoneRow).filter(
+            ZoneRow.location_id == location_id,
+            func.lower(ZoneRow.name) == name.lower(),
+        )
+        if exclude_zone_id is not None:
+            query = query.filter(ZoneRow.id != exclude_zone_id)
+        return query.first() is not None
+
+    def add_zone(self, location_id: UUID, zone: Zone) -> Zone:
+        row = ZoneRow(
+            location_id=location_id,
+            name=zone.name,
+            moisture_threshold_low=zone.moisture_threshold_low,
+            moisture_threshold_high=zone.moisture_threshold_high,
+            schedule=zone.schedule,
+        )
+        self.db.add(row)
+        self.db.commit()
+        self.db.refresh(row)
+        return self._to_zone(row)
+
+    def update_zone(self, zone: Zone) -> Zone:
+        row = self.db.get(ZoneRow, zone.id)
+        row.name = zone.name
+        row.moisture_threshold_low = zone.moisture_threshold_low
+        row.moisture_threshold_high = zone.moisture_threshold_high
+        row.schedule = zone.schedule
+        self.db.commit()
+        self.db.refresh(row)
+        return self._to_zone(row)
+
+    def delete_zone_and_unassign(self, zone_id: UUID) -> None:
+        try:
+            self.db.query(DeviceRow).filter(DeviceRow.zone_id == zone_id).update(
+                {DeviceRow.zone_id: None, DeviceRow.location_id: None},
+                synchronize_session=False,
+            )
+            self.db.query(ZoneRow).filter(ZoneRow.id == zone_id).delete(
+                synchronize_session=False
+            )
+            self.db.commit()
+        except Exception:
+            self.db.rollback()
+            raise

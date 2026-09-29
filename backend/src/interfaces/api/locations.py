@@ -22,6 +22,10 @@ from src.application.devices.mappers import devices_to_dtos
 from src.application.locations.zone_assignment_service import ZoneAssignmentService
 from src.interfaces.api.devices import get_zone_assignment_service
 
+from src.application.locations.dto import ZoneCreateRequest, ZoneReadDto, ZoneUpdateRequest
+from src.application.locations.mappers import zone_to_dto
+from src.application.locations.zone_service import ZoneService
+
 router = APIRouter(prefix="/api/locations", tags=["locations"])
 
 
@@ -103,3 +107,64 @@ def list_zone_devices(
     except ZoneNotFoundError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
     return devices_to_dtos(devices)
+
+def get_zone_service(db: Session = Depends(get_db)) -> ZoneService:
+    return ZoneService(LocationRepository(db))
+
+
+@router.post(
+    "/{location_id}/zones",
+    response_model=ZoneReadDto,
+    status_code=status.HTTP_201_CREATED,
+    summary="Add a zone to a saved location",
+)
+def add_zone(
+    location_id: UUID,
+    request: ZoneCreateRequest,
+    service: ZoneService = Depends(get_zone_service),
+) -> ZoneReadDto:
+    try:
+        zone = service.add_zone(location_id, request)
+    except LocationNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    except ConfigurationError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    return zone_to_dto(zone, location_id)
+
+
+@router.patch(
+    "/{location_id}/zones/{zone_id}",
+    response_model=ZoneReadDto,
+    summary="Update a zone's name, thresholds and/or schedule",
+)
+def update_zone(
+    location_id: UUID,
+    zone_id: UUID,
+    request: ZoneUpdateRequest,
+    service: ZoneService = Depends(get_zone_service),
+) -> ZoneReadDto:
+    try:
+        zone = service.update_zone(location_id, zone_id, request)
+    except (LocationNotFoundError, ZoneNotFoundError) as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    except ConfigurationError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    return zone_to_dto(zone, location_id)
+
+
+@router.delete(
+    "/{location_id}/zones/{zone_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Delete a zone (not the last one); its devices become unassigned",
+)
+def delete_zone(
+    location_id: UUID,
+    zone_id: UUID,
+    service: ZoneService = Depends(get_zone_service),
+) -> None:
+    try:
+        service.delete_zone(location_id, zone_id)
+    except (LocationNotFoundError, ZoneNotFoundError) as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    except ConfigurationError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
