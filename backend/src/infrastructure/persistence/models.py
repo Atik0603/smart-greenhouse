@@ -30,7 +30,7 @@ class DeviceRow(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
-        zone_id: Mapped[uuid.UUID | None] = mapped_column(
+    zone_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("zones.id", ondelete="SET NULL"),
         nullable=True,
@@ -42,6 +42,9 @@ class DeviceRow(Base):
         nullable=True,
         index=True,
     )
+
+    __table_args__ = (Index("ix_devices_role", "role"),
+                      Index("ix_devices_family", "device_family"),)
 
 class LocationRow(Base):
     __tablename__ = "locations"
@@ -82,5 +85,4 @@ class ZoneRow(Base):
         JSONB, nullable=False, server_default="{}"
     )
 
-    __table_args__ = (Index("ix_devices_role", "role"),
-                      Index("ix_devices_family", "device_family"),)
+    
