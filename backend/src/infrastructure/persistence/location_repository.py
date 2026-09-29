@@ -77,3 +77,9 @@ class LocationRepository:
         self.db.delete(row)
         self.db.commit()
         return True
+
+    def get_zone(self, zone_id: UUID) -> tuple[Zone, UUID] | None:
+        row = self.db.get(ZoneRow, zone_id)
+        if row is None:
+            return None
+        return self._to_zone(row), row.location_id

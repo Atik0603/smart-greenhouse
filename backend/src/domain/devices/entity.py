@@ -10,3 +10,8 @@ class Device:
     display_name: str
     default_config: dict = field(default_factory=dict)
     id: UUID | None = None    # None until the database saves it
+    
+    default_config: dict = field(default_factory=dict)
+    id: UUID | None = None
+    zone_id: UUID | None = None
+    location_id: UUID | None = None

@@ -13,9 +13,14 @@ from src.application.locations.mappers import (
     location_config_to_dto,
     location_summary_to_dto,
 )
-from src.domain.locations.errors import ConfigurationError, LocationNotFoundError
+from src.domain.locations.errors import ConfigurationError, LocationNotFoundError, ZoneNotFoundError
 from src.infrastructure.db import get_db
 from src.infrastructure.persistence.location_repository import LocationRepository
+
+from src.application.devices.dto import DeviceDto
+from src.application.devices.mappers import devices_to_dtos
+from src.application.locations.zone_assignment_service import ZoneAssignmentService
+from src.interfaces.api.devices import get_zone_assignment_service
 
 router = APIRouter(prefix="/api/locations", tags=["locations"])
 
@@ -81,3 +86,20 @@ def delete_location(
         service.delete_location(location_id)
     except LocationNotFoundError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+
+
+@router.get(
+    "/{location_id}/zones/{zone_id}/devices",
+    response_model=list[DeviceDto],
+    summary="List sensors and actuators assigned to a zone of this location",
+)
+def list_zone_devices(
+    location_id: UUID,
+    zone_id: UUID,
+    service: ZoneAssignmentService = Depends(get_zone_assignment_service),
+) -> list[DeviceDto]:
+    try:
+        devices = service.list_zone_devices(location_id, zone_id)
+    except ZoneNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    return devices_to_dtos(devices)

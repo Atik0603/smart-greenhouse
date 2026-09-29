@@ -1,3 +1,4 @@
+from uuid import UUID
 from sqlalchemy.orm import Session
 
 from src.domain.devices.entity import Device
@@ -81,3 +82,24 @@ class DeviceRepository:
             display_name=row.display_name or "",
             default_config=row.default_config,
         )
+    
+    def set_zone_assignment(
+        self, device_id: UUID, zone_id: UUID | None, location_id: UUID | None
+    ) -> Device | None:
+        row = self.db.get(DeviceRow, device_id)
+        if row is None:
+            return None
+        row.zone_id = zone_id
+        row.location_id = location_id
+        self.db.commit()  # both columns change in the same write
+        self.db.refresh(row)
+        return self._row_to_device(row)
+
+    def list_devices_in_zone(self, zone_id: UUID) -> list[Device]:
+        rows = (
+            self.db.query(DeviceRow)
+            .filter(DeviceRow.zone_id == zone_id)
+            .order_by(DeviceRow.created_at.desc())
+            .all()
+        )
+        return [self._row_to_device(row) for row in rows]
