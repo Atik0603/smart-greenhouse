@@ -40,3 +40,40 @@ export async function createSensor(
   }
   return res.json();
 }
+
+
+// --- Phase 3: devices ---
+
+export type DeviceRole = "sensor" | "actuator";
+export type DeviceFamily = "simulation" | "edge";
+
+export interface DeviceDto {
+  id: string;
+  device_type: string;
+  role: DeviceRole;
+  device_family: string;
+  display_name: string;
+  default_config: Record<string, unknown>;
+}
+
+export async function listDevices(
+  filters: { family?: string; role?: DeviceRole } = {},
+): Promise<DeviceDto[]> {
+  const params = new URLSearchParams();
+  if (filters.family) params.set("family", filters.family);
+  if (filters.role) params.set("role", filters.role);
+  const query = params.toString();
+
+  const res = await fetch(`${API_BASE}/api/devices${query ? `?${query}` : ""}`);
+  if (!res.ok) throw new Error(`Failed to load devices (${res.status})`);
+  return res.json();
+}
+
+export async function provisionFamily(family: DeviceFamily): Promise<DeviceDto[]> {
+  const res = await fetch(
+    `${API_BASE}/api/devices/provision?family=${encodeURIComponent(family)}`,
+    { method: "POST" },
+  );
+  if (!res.ok) throw new Error(`Failed to provision ${family} kit (${res.status})`);
+  return res.json();
+}
