@@ -56,6 +56,8 @@ export interface DeviceDto {
   default_config: Record<string, unknown>;
   zone_id: string | null;
   location_id: string | null;
+  sampling_interval_seconds: number;
+  tracking_enabled: boolean;
 }
 
 export async function listDevices(
@@ -196,5 +198,46 @@ export async function assignDeviceZone(deviceId: string, zoneId: string | null):
     body: JSON.stringify({ zone_id: zoneId }),
   });
   if (!res.ok) throw await errorFrom(res, `Failed to assign zone (${res.status})`);
+  return res.json();
+}
+
+// --- Phase 5: readings and sampling ---
+
+export type ReadingSource = "simulation" | "mqtt" | "vendor";
+
+export interface ReadingDto {
+  device_id: string;
+  value: number;
+  unit: string;
+  source: ReadingSource;
+  recorded_at: string; // ISO-8601
+}
+
+export async function readSensorNow(sensorId: string): Promise<ReadingDto> {
+  const res = await fetch(`${API_BASE}/api/sensors/${sensorId}/read`, { method: "POST" });
+  if (!res.ok) throw await errorFrom(res, `Read failed (${res.status})`);
+  return res.json();
+}
+
+export async function listSensorReadings(sensorId: string, limit = 20): Promise<ReadingDto[]> {
+  const res = await fetch(`${API_BASE}/api/sensors/${sensorId}/readings?limit=${limit}`);
+  if (!res.ok) throw await errorFrom(res, `Failed to load readings (${res.status})`);
+  return res.json();
+}
+
+export async function updateSampling(
+  deviceId: string,
+  samplingIntervalSeconds: number,
+  trackingEnabled: boolean,
+): Promise<DeviceDto> {
+  const res = await fetch(`${API_BASE}/api/devices/${deviceId}/sampling`, {
+    method: "PATCH",
+    headers: JSON_HEADERS,
+    body: JSON.stringify({
+      sampling_interval_seconds: samplingIntervalSeconds,
+      tracking_enabled: trackingEnabled,
+    }),
+  });
+  if (!res.ok) throw await errorFrom(res, `Failed to update sampling (${res.status})`);
   return res.json();
 }
