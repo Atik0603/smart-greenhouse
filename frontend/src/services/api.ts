@@ -3,7 +3,7 @@ export interface HealthResponse {
   db: "ok" | "fail";
 }
 
-const API_BASE = import.meta.env.VITE_API_BASE ?? "http://localhost:8000";
+const API_BASE = import.meta.env.VITE_API_BASE ?? "http://localhost:8001";
 
 export async function getHealth(): Promise<HealthResponse> {
   const res = await fetch(`${API_BASE}/health`);
