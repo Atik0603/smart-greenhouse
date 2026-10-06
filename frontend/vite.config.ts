@@ -11,6 +11,9 @@ export default defineConfig({
     watch: {
       usePolling: true,
     },
+    hmr: {
+      clientPort: 5174, // host port from docker-compose ("5174:5173")
+    },
   },
 })
 

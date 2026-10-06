@@ -14,9 +14,10 @@ class DeviceRepository:
         row = DeviceRow(
             device_type=sensor.device_type,
             display_name=sensor.display_name,
-            default_config=sensor.default_config,
+            default_config={**sensor.default_config, "protocol": "simulation"},
             role="sensor",
             device_family="simulation",
+            sampling_interval_seconds=int(sensor.default_config.get("sampling_interval_seconds", 300)),
         )
         self.db.add(row)
         self.db.commit()
@@ -71,6 +72,8 @@ class DeviceRepository:
             device_family=device.device_family,
             display_name=device.display_name,
             default_config=device.default_config,
+            sampling_interval_seconds=device.sampling_interval_seconds,
+            tracking_enabled=device.tracking_enabled,
         )
 
     def _row_to_device(self, row: DeviceRow) -> Device:
@@ -83,6 +86,8 @@ class DeviceRepository:
             default_config=row.default_config,
             zone_id=row.zone_id,
             location_id=row.location_id,
+            sampling_interval_seconds=row.sampling_interval_seconds,
+            tracking_enabled=row.tracking_enabled,
         )
     
     def set_zone_assignment(
@@ -105,3 +110,32 @@ class DeviceRepository:
             .all()
         )
         return [self._row_to_device(row) for row in rows]
+
+    def get_device(self, device_id: UUID) -> Device | None:
+        row = self.db.get(DeviceRow, device_id)
+        return self._row_to_device(row) if row else None
+
+    def list_sampling_candidates(self) -> list[Device]:
+        """Sensors the simulation sampler is responsible for: protocol simulation, tracking on."""
+        rows = (
+            self.db.query(DeviceRow)
+            .filter(
+                DeviceRow.role == "sensor",
+                DeviceRow.tracking_enabled.is_(True),
+                DeviceRow.default_config["protocol"].astext == "simulation",
+            )
+            .all()
+        )
+        return [self._row_to_device(row) for row in rows]
+
+    def update_sampling(
+        self, device_id: UUID, interval_seconds: int, tracking_enabled: bool
+    ) -> Device | None:
+        row = self.db.get(DeviceRow, device_id)
+        if row is None:
+            return None
+        row.sampling_interval_seconds = interval_seconds
+        row.tracking_enabled = tracking_enabled
+        self.db.commit()
+        self.db.refresh(row)
+        return self._row_to_device(row)

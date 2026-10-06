@@ -11,7 +11,19 @@ from src.interfaces.api.devices import router as devices_router
 
 from src.interfaces.api.locations import router as locations_router
 
-app = FastAPI(title="Smart Greenhouse API", docs_url=None)  # disable built-in Swagger /docs
+import asyncio
+from contextlib import asynccontextmanager
+
+from src.interfaces.sampler_runner import sampler_enabled, sampler_loop
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    task = asyncio.create_task(sampler_loop()) if sampler_enabled() else None
+    yield
+    if task is not None:
+        task.cancel()
+
+app = FastAPI(lifespan=lifespan, title="Smart Greenhouse API", docs_url=None)  # disable built-in Swagger /docs
 
 app.add_middleware(
     CORSMiddleware,

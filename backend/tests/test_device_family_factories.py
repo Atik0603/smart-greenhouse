@@ -34,7 +34,7 @@ def test_family_sensors_still_come_from_phase2_creators():
 
     assert moisture.role == "sensor"
     assert moisture.default_config["moisture_threshold"] == 30   # Phase 2 default kept
-    assert moisture.default_config["protocol"] == "i2c"          # family config added
+    assert moisture.default_config["protocol"] == "mqtt"          # family config added
 
 
 @pytest.mark.parametrize("family_key", list(DEVICE_FAMILY_FACTORIES))

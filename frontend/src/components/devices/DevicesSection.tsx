@@ -65,6 +65,10 @@ export function DevicesSection({ configVersion = 0, onDevicesChanged }: Props) {
     onDevicesChanged?.();
   }
 
+  function handleDeviceUpdated(updated: DeviceDto) {
+    setDevices((prev) => prev.map((d) => (d.id === updated.id ? updated : d)));
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -88,6 +92,7 @@ export function DevicesSection({ configVersion = 0, onDevicesChanged }: Props) {
         error={error}
         zoneGroups={zoneGroups}
         onAssignZone={handleAssignZone}
+        onDeviceUpdated={handleDeviceUpdated}
       />
     </div>
   );

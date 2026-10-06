@@ -17,12 +17,16 @@ from src.application.locations.zone_assignment_service import ZoneAssignmentServ
 from src.domain.devices.errors import DeviceNotFoundError
 from src.domain.locations.errors import ZoneNotFoundError
 from src.infrastructure.persistence.location_repository import LocationRepository
+from src.application.devices.dto import SamplingUpdateRequest
+from src.application.devices.sampling_service import SamplingService
+from src.domain.devices.sampling import SamplingConfigError
 
 router = APIRouter(prefix="/api/devices", tags=["devices"])
 
 
 def get_device_service(db: Session = Depends(get_db)) -> DeviceFamilyService:
     return DeviceFamilyService(DeviceRepository(db))
+
 
 
 @router.get("", response_model=list[DeviceDto])
@@ -68,4 +72,26 @@ def assign_device_zone(
         device = service.assign(device_id, request.zone_id)
     except (DeviceNotFoundError, ZoneNotFoundError) as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    return device_to_dto(device)
+
+def get_sampling_service(db: Session = Depends(get_db)) -> SamplingService:
+    return SamplingService(DeviceRepository(db))
+
+
+@router.patch(
+    "/{device_id}/sampling",
+    response_model=DeviceDto,
+    summary="Set a sensor's sampling interval (min 5 s) and turn background tracking on/off",
+)
+def update_sampling(
+    device_id: UUID,
+    request: SamplingUpdateRequest,
+    service: SamplingService = Depends(get_sampling_service),
+) -> DeviceDto:
+    try:
+        device = service.update(device_id, request.sampling_interval_seconds, request.tracking_enabled)
+    except DeviceNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    except SamplingConfigError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
     return device_to_dto(device)
