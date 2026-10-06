@@ -19,6 +19,7 @@ def _sensor_as_device(sensor: Sensor, family: str, extra_config: dict) -> Device
         device_family=family,
         display_name=sensor.display_name,
         default_config={**sensor.default_config, **extra_config},
+        sampling_interval_seconds=int(sensor.default_config.get("sampling_interval_seconds", 300)),
     )
 
 

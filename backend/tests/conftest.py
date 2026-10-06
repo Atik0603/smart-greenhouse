@@ -1,4 +1,5 @@
 import os
+os.environ.setdefault("SAMPLER_ENABLED", "false")  # no background sampler during tests
 
 # Integration tests must never touch the dev database.
 # If TEST_DATABASE_URL is given, point the whole app at it BEFORE anything imports settings.
