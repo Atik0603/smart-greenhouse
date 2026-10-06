@@ -127,3 +127,15 @@ class DeviceRepository:
             .all()
         )
         return [self._row_to_device(row) for row in rows]
+
+    def update_sampling(
+        self, device_id: UUID, interval_seconds: int, tracking_enabled: bool
+    ) -> Device | None:
+        row = self.db.get(DeviceRow, device_id)
+        if row is None:
+            return None
+        row.sampling_interval_seconds = interval_seconds
+        row.tracking_enabled = tracking_enabled
+        self.db.commit()
+        self.db.refresh(row)
+        return self._row_to_device(row)
