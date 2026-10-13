@@ -56,7 +56,7 @@ class AggressiveStrategy(AutomationStrategy):
 
     def decide(self, context: LocationAutomationContext) -> Recommendation:
         c = context
-        midpoint = (c.low + c.high) / 2
+        midpoint = round((c.low + c.high) / 2, 4)
         if c.moisture < midpoint:
             urgency = (midpoint - c.moisture) / (midpoint - c.low)
             return Recommendation(
