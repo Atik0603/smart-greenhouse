@@ -3,6 +3,7 @@ import { DashboardPage } from "./pages/DashboardPage";
 import { DevicesSection } from "./components/devices/DevicesSection";
 import { LocationConfigWizard } from "./components/config/LocationConfigWizard";
 import { useState } from "react";
+import StrategyPanel from "./features/automation/StrategyPanel";
 
 
 
@@ -24,6 +25,9 @@ function App() {
           onConfigChanged={() => setConfigVersion((v) => v + 1)}
           refreshKey={devicesVersion}
         />
+      </section>
+            <section id="automation" className="space-y-3">
+        <StrategyPanel />
       </section>
     </AppLayout>
 
