@@ -16,6 +16,9 @@ from contextlib import asynccontextmanager
 
 from src.interfaces.sampler_runner import sampler_enabled, sampler_loop
 
+from src.interfaces.api.automation import router as automation_router
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     task = asyncio.create_task(sampler_loop()) if sampler_enabled() else None
@@ -37,6 +40,7 @@ app.include_router(health_router)
 app.include_router(sensors_router)
 app.include_router(devices_router)
 app.include_router(locations_router)
+app.include_router(automation_router)
 
 
 @app.get("/scalar", include_in_schema=False)
