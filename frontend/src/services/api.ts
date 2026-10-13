@@ -241,3 +241,73 @@ export async function updateSampling(
   if (!res.ok) throw await errorFrom(res, `Failed to update sampling (${res.status})`);
   return res.json();
 }
+
+// --- Phase 6: automation strategy ---
+
+export type AutomationAction = "irrigate" | "wait";
+
+export interface AutomationRuleDto {
+  location_id: string;
+  strategy_key: string;
+  updated_at: string;
+}
+
+export interface ZoneRecommendationDto {
+  zone_id: string;
+  zone_name: string;
+  moisture: number | null;
+  action: AutomationAction;
+  reason: string;
+  score: number | null;
+}
+
+export interface AutomationEvaluationDto {
+  location_id: string;
+  strategy_key: string;
+  action: AutomationAction;
+  reason: string;
+  zones: ZoneRecommendationDto[];
+}
+
+async function errorFromResponse(res: Response): Promise<Error> {
+  try {
+    const body = await res.json();
+    if (typeof body.detail === "string") return new Error(body.detail);
+  } catch {
+    /* not JSON */
+  }
+  return new Error(`Request failed (${res.status})`);
+}
+
+export async function listStrategies(): Promise<string[]> {
+  const res = await fetch(`${API_BASE}/api/automation/strategies`);
+  if (!res.ok) throw await errorFromResponse(res);
+  return res.json();
+}
+
+export async function getAutomationRule(locationId: string): Promise<AutomationRuleDto | null> {
+  const res = await fetch(`${API_BASE}/api/locations/${locationId}/automation`);
+  if (!res.ok) throw await errorFromResponse(res);
+  return res.json();
+}
+
+export async function saveAutomationRule(
+  locationId: string,
+  strategyKey: string,
+): Promise<AutomationRuleDto> {
+  const res = await fetch(`${API_BASE}/api/locations/${locationId}/automation`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ strategy_key: strategyKey }),
+  });
+  if (!res.ok) throw await errorFromResponse(res);
+  return res.json();
+}
+
+export async function evaluateAutomation(locationId: string): Promise<AutomationEvaluationDto> {
+  const res = await fetch(`${API_BASE}/api/locations/${locationId}/automation/evaluate`, {
+    method: "POST",
+  });
+  if (!res.ok) throw await errorFromResponse(res);
+  return res.json();
+}
