@@ -111,6 +111,16 @@ class DeviceRepository:
         )
         return [self._row_to_device(row) for row in rows]
 
+    def list_assigned_in_location(self, location_id: UUID) -> list[Device]:
+        """Devices assigned to a zone of this location. Unassigned devices are excluded."""
+        rows = (
+            self.db.query(DeviceRow)
+            .filter(DeviceRow.location_id == location_id, DeviceRow.zone_id.is_not(None))
+            .order_by(DeviceRow.display_name, DeviceRow.created_at)
+            .all()
+        )
+        return [self._row_to_device(row) for row in rows]
+
     def get_device(self, device_id: UUID) -> Device | None:
         row = self.db.get(DeviceRow, device_id)
         return self._row_to_device(row) if row else None
