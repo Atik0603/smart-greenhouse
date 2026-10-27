@@ -17,6 +17,13 @@ from src.infrastructure.persistence.device_repository import DeviceRepository
 from src.infrastructure.persistence.location_repository import LocationRepository
 from src.infrastructure.persistence.reading_repository import ReadingRepository
 
+from sqlalchemy.orm import Session
+
+from src.infrastructure.persistence.automation_repository import (
+    AutomationContextRepository,
+    AutomationRuleRepository,
+)
+
 
 class LocationOverviewFacade:
     """One entry point for the dashboard overview. Composes existing subsystems; adds no rules."""
@@ -105,3 +112,14 @@ class LocationOverviewFacade:
             tracking_enabled=device.tracking_enabled,                    # from the device
             sampling_interval_seconds=device.sampling_interval_seconds,  # from the device
         )
+
+def build_location_overview_facade(db: Session) -> LocationOverviewFacade:
+    """Wire the facade to its subsystems. Callers only need a session."""
+    return LocationOverviewFacade(
+        locations=LocationRepository(db),
+        devices=DeviceRepository(db),
+        readings=ReadingRepository(db),
+        automation=AutomationService(
+            AutomationRuleRepository(db), AutomationContextRepository(db)
+        ),
+    )
