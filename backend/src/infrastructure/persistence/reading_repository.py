@@ -46,6 +46,19 @@ class ReadingRepository:
         )
         return {device_id: latest for device_id, latest in rows}
 
+    def latest_by_device(self, device_ids: list[UUID]) -> dict[UUID, Reading]:
+        """Newest reading per device id (any source). Devices without readings are absent."""
+        if not device_ids:
+            return {}
+        rows = (
+            self.db.query(ReadingRow)
+            .filter(ReadingRow.device_id.in_(device_ids))
+            .distinct(ReadingRow.device_id)
+            .order_by(ReadingRow.device_id, ReadingRow.recorded_at.desc())
+            .all()
+        )
+        return {row.device_id: self._to_reading(row) for row in rows}
+
     def _to_reading(self, row: ReadingRow) -> Reading:
         return Reading(
             device_id=row.device_id,
