@@ -311,3 +311,55 @@ export async function evaluateAutomation(locationId: string): Promise<Automation
   if (!res.ok) throw await errorFromResponse(res);
   return res.json();
 }
+
+
+// --- Phase 7: location overview (facade) ---
+
+export interface DeviceCountsDto {
+  sensor: number;
+  actuator: number;
+}
+
+export interface OverviewDeviceDto {
+  id: string;
+  device_type: string;
+  role: string;
+  display_name: string | null;
+}
+
+export interface OverviewReadingDto {
+  device_id: string;
+  value: number;
+  unit: string;
+  recorded_at: string;
+  tracking_enabled: boolean;
+  sampling_interval_seconds: number;
+}
+
+export interface OverviewZoneDto {
+  id: string;
+  name: string;
+  moisture_threshold_low: number;
+  moisture_threshold_high: number;
+  devices: OverviewDeviceDto[];
+  latest_readings: OverviewReadingDto[];
+}
+
+export interface RecommendationSummaryDto {
+  action: string;
+  reason: string;
+}
+
+export interface LocationOverviewDto {
+  location: LocationSummaryDto;
+  device_counts: DeviceCountsDto;
+  zones: OverviewZoneDto[];
+  strategy_key: string | null;
+  last_recommendation: RecommendationSummaryDto | null;
+}
+
+export async function getLocationOverview(locationId: string): Promise<LocationOverviewDto> {
+  const res = await fetch(`${API_BASE}/api/locations/${locationId}/overview`);
+  if (!res.ok) throw await errorFromResponse(res);
+  return res.json();
+}

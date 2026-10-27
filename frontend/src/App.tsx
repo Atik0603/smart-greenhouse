@@ -5,8 +5,6 @@ import { LocationConfigWizard } from "./components/config/LocationConfigWizard";
 import { useState } from "react";
 import StrategyPanel from "./features/automation/StrategyPanel";
 
-
-
 function App() {
   const [configVersion, setConfigVersion] = useState(0);
   const [devicesVersion, setDevicesVersion] = useState(0);
@@ -21,16 +19,15 @@ function App() {
         />
       </section>
       <section id="configuration">
-      <LocationConfigWizard
+        <LocationConfigWizard
           onConfigChanged={() => setConfigVersion((v) => v + 1)}
           refreshKey={devicesVersion}
         />
       </section>
-            <section id="automation" className="space-y-3">
+      <section id="automation" className="space-y-3">
         <StrategyPanel />
       </section>
     </AppLayout>
-
   );
 }
 
