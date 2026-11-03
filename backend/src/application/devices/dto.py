@@ -15,7 +15,19 @@ class DeviceDto(BaseModel):
     location_id: UUID | None = None
     sampling_interval_seconds: int = 300
     tracking_enabled: bool = True
+    state: str | None = None                      
+    allowed_commands: list[str] = []
 
 class SamplingUpdateRequest(BaseModel):
     sampling_interval_seconds: int
     tracking_enabled: bool
+
+
+class TransitionRequest(BaseModel):
+    target: str
+
+
+class ActuatorStateDto(BaseModel):
+    device_id: UUID
+    state: str
+    allowed_commands: list[str]
