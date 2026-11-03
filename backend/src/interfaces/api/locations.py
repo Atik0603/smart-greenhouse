@@ -18,13 +18,15 @@ from src.infrastructure.db import get_db
 from src.infrastructure.persistence.location_repository import LocationRepository
 
 from src.application.devices.dto import DeviceDto
-from src.application.devices.mappers import devices_to_dtos
+from src.application.devices.mappers import devices_to_dtos,  with_state
 from src.application.locations.zone_assignment_service import ZoneAssignmentService
-from src.interfaces.api.devices import get_zone_assignment_service
+from src.interfaces.api.devices import get_zone_assignment_service,  get_actuator_state_service
 
 from src.application.locations.dto import ZoneCreateRequest, ZoneReadDto, ZoneUpdateRequest
 from src.application.locations.mappers import zone_to_dto
 from src.application.locations.zone_service import ZoneService
+from src.application.devices.actuator_state_service import ActuatorStateService
+
 
 router = APIRouter(prefix="/api/locations", tags=["locations"])
 
@@ -101,12 +103,13 @@ def list_zone_devices(
     location_id: UUID,
     zone_id: UUID,
     service: ZoneAssignmentService = Depends(get_zone_assignment_service),
+    states: ActuatorStateService = Depends(get_actuator_state_service),
 ) -> list[DeviceDto]:
     try:
         devices = service.list_zone_devices(location_id, zone_id)
     except ZoneNotFoundError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
-    return devices_to_dtos(devices)
+    return with_state(devices_to_dtos(devices), states.views_for(devices))
 
 def get_zone_service(db: Session = Depends(get_db)) -> ZoneService:
     return ZoneService(LocationRepository(db))

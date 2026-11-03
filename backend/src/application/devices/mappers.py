@@ -1,5 +1,7 @@
 from src.application.devices.dto import DeviceDto
 from src.domain.devices.entity import Device
+from src.application.devices.actuator_state_service import ActuatorStateView
+from uuid import UUID
 
 
 def device_to_dto(device: Device) -> DeviceDto:
@@ -22,3 +24,15 @@ def device_to_dto(device: Device) -> DeviceDto:
 def devices_to_dtos(devices: list[Device]) -> list[DeviceDto]:
     
     return [device_to_dto(d) for d in devices]
+
+
+def with_state(
+    dtos: list[DeviceDto], views: dict[UUID, ActuatorStateView]
+) -> list[DeviceDto]:
+    """Copy state + allowed_commands onto the DTOs of actuators. Sensors are left as they are."""
+    for dto in dtos:
+        view = views.get(dto.id)
+        if view is not None:
+            dto.state = view.state
+            dto.allowed_commands = view.allowed_commands
+    return dtos

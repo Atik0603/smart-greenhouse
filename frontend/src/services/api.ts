@@ -58,6 +58,8 @@ export interface DeviceDto {
   location_id: string | null;
   sampling_interval_seconds: number;
   tracking_enabled: boolean;
+  state: string | null;           
+  allowed_commands: string[];
 }
 
 export async function listDevices(
@@ -360,6 +362,25 @@ export interface LocationOverviewDto {
 
 export async function getLocationOverview(locationId: string): Promise<LocationOverviewDto> {
   const res = await fetch(`${API_BASE}/api/locations/${locationId}/overview`);
+  if (!res.ok) throw await errorFromResponse(res);
+  return res.json();
+}
+
+
+// --- Phase 8: actuator state ---
+
+export interface ActuatorStateDto {
+  device_id: string;
+  state: string;
+  allowed_commands: string[];
+}
+
+export async function transitionActuator(deviceId: string, target: string): Promise<ActuatorStateDto> {
+  const res = await fetch(`${API_BASE}/api/devices/${deviceId}/transition`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ target }),
+  });
   if (!res.ok) throw await errorFromResponse(res);
   return res.json();
 }
