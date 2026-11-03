@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Index, Integer, Numeric, String, func, text
+from sqlalchemy import Boolean, DateTime, ForeignKey, Index, Integer, Numeric, String, func, text, CheckConstraint
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -135,4 +135,30 @@ class AutomationRuleRow(Base):
         nullable=False,
         server_default=func.now(),
         onupdate=func.now(),
+    )
+
+ACTUATOR_STATES = ("off", "idle", "running", "error", "maintenance")
+
+
+class ActuatorStateRow(Base):
+    __tablename__ = "actuator_states"
+
+    device_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("devices.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    state: Mapped[str] = mapped_column(String(20), nullable=False, server_default="idle")
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+        onupdate=func.now(),
+    )
+
+    __table_args__ = (
+        CheckConstraint(
+            "state IN ('off', 'idle', 'running', 'error', 'maintenance')",
+            name="ck_actuator_states_state",
+        ),
     )
