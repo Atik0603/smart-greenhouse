@@ -2,6 +2,8 @@ import type { DeviceDto } from "../../services/api";
 import type { ZoneGroup } from "../config/useZoneOptions";
 import { SensorReadingPanel } from "../../features/sensors/SensorReadingPanel";
 import { ZonePicker } from "./ZonePicker";
+import { ActuatorStateBadge } from "./ActuatorStateBadge";
+import { ActuatorTransitionDemo } from "./ActuatorTransitionDemo";
 
 interface Props {
   devices: DeviceDto[];
@@ -57,6 +59,7 @@ export function DeviceList({ devices, loading, error, zoneGroups, onAssignZone, 
               >
                 {d.device_family}
               </span>
+               <ActuatorStateBadge device={d} />
               {zoneGroups && onAssignZone && (
                 <ZonePicker device={d} groups={zoneGroups} onAssign={onAssignZone} />
               )}
@@ -65,6 +68,9 @@ export function DeviceList({ devices, loading, error, zoneGroups, onAssignZone, 
 
           {d.role === "sensor" && onDeviceUpdated && (
             <SensorReadingPanel device={d} onDeviceUpdated={onDeviceUpdated} />
+          )}
+          {d.role === "actuator" && onDeviceUpdated && (
+            <ActuatorTransitionDemo device={d} onDeviceUpdated={onDeviceUpdated} />
           )}
         </li>
       ))}
