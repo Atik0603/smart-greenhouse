@@ -10,3 +10,6 @@ class IllegalTransitionError(ValueError):
         super().__init__(f"Cannot move from '{current}' to '{target}'. Legal targets: {legal}")
         self.current = current
         self.target = target
+
+class NotAnActuatorError(ValueError):
+    """The device exists but is a sensor, so it has no lifecycle (HTTP 400)."""
