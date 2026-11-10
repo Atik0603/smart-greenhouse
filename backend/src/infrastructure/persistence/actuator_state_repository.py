@@ -1,3 +1,4 @@
+from datetime import datetime
 from uuid import UUID
 
 from sqlalchemy.orm import Session
@@ -24,6 +25,11 @@ class ActuatorStateRepository:
     def get_state(self, device_id: UUID) -> str:
         """Stored state, or the initial state for an actuator created after the migration."""
         return self.get_states([device_id]).get(device_id, INITIAL_STATE)
+
+    def get_state_since(self, device_id: UUID) -> tuple[str, datetime] | None:
+        """(state, when it last changed), or None if the actuator has no row yet."""
+        row = self.db.get(ActuatorStateRow, device_id)
+        return None if row is None else (row.state, row.updated_at)
 
     def save_state(self, device_id: UUID, state: str) -> None:
         row = self.db.get(ActuatorStateRow, device_id)
