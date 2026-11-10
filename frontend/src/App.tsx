@@ -4,6 +4,7 @@ import { DevicesSection } from "./components/devices/DevicesSection";
 import { LocationConfigWizard } from "./components/config/LocationConfigWizard";
 import { useState } from "react";
 import StrategyPanel from "./features/automation/StrategyPanel";
+import ExecutionLog from "./features/actuators/ExecutionLog";
 
 function App() {
   const [configVersion, setConfigVersion] = useState(0);
@@ -17,6 +18,9 @@ function App() {
           configVersion={configVersion}
           onDevicesChanged={() => setDevicesVersion((v) => v + 1)}
         />
+      </section>
+      <section id="executions">
+        <ExecutionLog />
       </section>
       <section id="configuration">
         <LocationConfigWizard

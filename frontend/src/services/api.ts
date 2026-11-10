@@ -384,3 +384,20 @@ export async function transitionActuator(deviceId: string, target: string): Prom
   if (!res.ok) throw await errorFromResponse(res);
   return res.json();
 }
+
+// --- Phase 9: actuator execution log ---
+
+export interface ExecutionDto {
+  id: string;
+  device_id: string;
+  success: boolean;
+  policy_applied: string[];
+  message: string | null;
+  created_at: string;
+}
+
+export async function listExecutions(limit = 20): Promise<ExecutionDto[]> {
+  const res = await fetch(`${API_BASE}/api/actuators/executions?limit=${limit}`);
+  if (!res.ok) throw await errorFromResponse(res);
+  return res.json();
+}
