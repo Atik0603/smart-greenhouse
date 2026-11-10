@@ -13,3 +13,12 @@ class IllegalTransitionError(ValueError):
 
 class NotAnActuatorError(ValueError):
     """The device exists but is a sensor, so it has no lifecycle (HTTP 400)."""
+
+
+class PolicyViolationError(Exception):
+    """A decorator refused the command. The inner adapter was never called (HTTP 409)."""
+
+    def __init__(self, policy: str, message: str) -> None:
+        super().__init__(message)
+        self.policy = policy      # e.g. "maxRunTime"
+        self.message = message
