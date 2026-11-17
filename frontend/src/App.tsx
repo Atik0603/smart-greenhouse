@@ -5,6 +5,7 @@ import { LocationConfigWizard } from "./components/config/LocationConfigWizard";
 import { useState } from "react";
 import StrategyPanel from "./features/automation/StrategyPanel";
 import ExecutionLog from "./features/actuators/ExecutionLog";
+import CommandPanel from "./components/commands/CommandPanel";
 
 function App() {
   const [configVersion, setConfigVersion] = useState(0);
@@ -18,6 +19,9 @@ function App() {
           configVersion={configVersion}
           onDevicesChanged={() => setDevicesVersion((v) => v + 1)}
         />
+      </section>
+      <section id="controls">
+        <CommandPanel />
       </section>
       <section id="executions">
         <ExecutionLog />

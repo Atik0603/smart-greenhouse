@@ -81,8 +81,8 @@ def test_unknown_stored_state_is_rejected_when_loading():
     [
         ("water_pump", "idle", ["start_pump", "begin_maintenance", "power_off"]),
         ("water_pump", "running", ["stop_pump"]),
-        ("grow_light", "idle", ["lights_on", "begin_maintenance", "power_off"]),
-        ("grow_light", "running", ["lights_off"]),
+        ("grow_light", "idle", ["lights_on", "begin_maintenance", "power_off", "set_light_level"]),
+        ("grow_light", "running", ["lights_off", "set_light_level"]),
         ("water_pump", "off", ["power_on"]),
         ("water_pump", "maintenance", ["end_maintenance"]),
         ("water_pump", "error", ["reset", "begin_maintenance"]),

@@ -401,3 +401,38 @@ export async function listExecutions(limit = 20): Promise<ExecutionDto[]> {
   if (!res.ok) throw await errorFromResponse(res);
   return res.json();
 }
+
+// --- Phase 10: commands ---
+
+export type CommandStatus = "success" | "failed" | "rejected";
+
+export interface CommandLogDto {
+  id: string;
+  command_type: string;
+  device_id: string;
+  payload: Record<string, unknown>;
+  status: CommandStatus;
+  error_message: string | null;
+  created_at: string;
+}
+
+export async function submitCommand(
+  deviceId: string,
+  commandType: string,
+  payload: Record<string, unknown> = {},
+): Promise<CommandLogDto> {
+  const res = await fetch(`${API_BASE}/api/commands`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ command_type: commandType, device_id: deviceId, payload }),
+  });
+  if (res.status === 409) return res.json(); // rejected: still a full log row, not an error
+  if (!res.ok) throw await errorFromResponse(res);
+  return res.json();
+}
+
+export async function listCommands(limit = 20): Promise<CommandLogDto[]> {
+  const res = await fetch(`${API_BASE}/api/commands?limit=${limit}`);
+  if (!res.ok) throw await errorFromResponse(res);
+  return res.json();
+}

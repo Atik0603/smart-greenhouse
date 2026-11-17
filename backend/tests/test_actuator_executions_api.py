@@ -1,4 +1,4 @@
-import os
+﻿import os
 
 import pytest
 
@@ -22,7 +22,7 @@ def client():
     with engine.begin() as conn:
         conn.execute(
             text(
-                "TRUNCATE actuator_execution_log, actuator_states, automation_rules, "
+                "TRUNCATE command_log, actuator_execution_log, actuator_states, automation_rules, "
                 "sensor_readings, devices, zones, locations CASCADE"
             )
         )
@@ -30,20 +30,13 @@ def client():
         yield c
 
 
-# --- helpers ---
-
-def kit(client, family="simulation"):
-    res = client.post("/api/devices/provision", params={"family": family})
-    assert res.status_code == 201, res.text
-    return res.json()
-
-
 def a_pump(client):
-    return next(d for d in kit(client) if d["device_type"] == "water_pump")
+    devices = client.post("/api/devices/provision", params={"family": "simulation"}).json()
+    return next(d for d in devices if d["device_type"] == "water_pump")
 
 
-def apply(client, device_id, command="anything"):
-    return client.post(f"/api/actuators/{device_id}/apply", json={"command": command})
+def send(client, command_type, device_id):
+    return client.post("/api/commands", json={"command_type": command_type, "device_id": device_id})
 
 
 def log_rows(device_id):
@@ -63,76 +56,62 @@ def total_rows() -> int:
         return conn.execute(text("SELECT count(*) FROM actuator_execution_log")).scalar_one()
 
 
-def make_running_too_long(client, device_id):
-    res = client.post(f"/api/devices/{device_id}/transition", json={"target": "running"})
-    assert res.status_code == 200, res.text
+def age_running(device_id):
     with engine.begin() as conn:
         conn.execute(
-            text(
-                "UPDATE actuator_states SET updated_at = now() - interval '31 minutes' "
-                "WHERE device_id = :id"
-            ),
+            text("UPDATE actuator_states SET updated_at = now() - interval '31 minutes' WHERE device_id = :id"),
             {"id": device_id},
         )
 
 
-# --- Rows are inserted for every attempt ---
-
-def test_successful_apply_inserts_a_success_row(client):
+def test_successful_command_inserts_a_success_row(client):
     pump = a_pump(client)
-
-    res = apply(client, pump["id"], "anything")
-
-    assert res.status_code == 200, res.text
-    assert res.json()["command"] == "anything"
+    assert send(client, "start_pump", pump["id"]).json()["status"] == "success"
     assert log_rows(pump["id"]) == [(True, ["logging"], None)]
 
 
 def test_failed_policy_writes_execution_row(client):
     pump = a_pump(client)
-    make_running_too_long(client, pump["id"])
+    send(client, "start_pump", pump["id"])
+    age_running(pump["id"])
 
-    res = apply(client, pump["id"], "stop_pump")
+    res = send(client, "stop_pump", pump["id"])
 
-    assert res.status_code == 409
-    assert res.json()["detail"] == "Max run time exceeded"
-    assert log_rows(pump["id"]) == [(False, ["maxRunTime", "logging"], "Max run time exceeded")]
+    assert res.status_code == 200 and res.json()["status"] == "failed"
+    assert log_rows(pump["id"]) == [
+        (True, ["logging"], None),
+        (False, ["maxRunTime", "logging"], "Max run time exceeded"),
+    ]
 
 
 def test_running_for_less_than_the_limit_still_succeeds(client):
     pump = a_pump(client)
-    assert client.post(
-        f"/api/devices/{pump['id']}/transition", json={"target": "running"}
-    ).status_code == 200
+    send(client, "start_pump", pump["id"])
+    assert send(client, "stop_pump", pump["id"]).json()["status"] == "success"
+    assert log_rows(pump["id"]) == [(True, ["logging"], None), (True, ["logging"], None)]
 
-    assert apply(client, pump["id"], "stop_pump").status_code == 200
-    assert log_rows(pump["id"]) == [(True, ["logging"], None)]
-
-
-# --- The executions endpoint ---
 
 def test_executions_endpoint_lists_newest_first(client):
     pump = a_pump(client)
-    assert apply(client, pump["id"]).status_code == 200
-    make_running_too_long(client, pump["id"])
-    assert apply(client, pump["id"]).status_code == 409
+    send(client, "start_pump", pump["id"])
+    age_running(pump["id"])
+    send(client, "stop_pump", pump["id"])
 
     rows = client.get("/api/actuators/executions", params={"limit": 10}).json()
 
-    assert [r["success"] for r in rows] == [False, True]          # newest first
+    assert [r["success"] for r in rows] == [False, True]
     assert set(rows[0]) == {"id", "device_id", "success", "policy_applied", "message", "created_at"}
     assert rows[0]["policy_applied"] == ["maxRunTime", "logging"]
-    assert rows[0]["message"] == "Max run time exceeded"
     assert rows[1]["message"] is None
-
     assert len(client.get("/api/actuators/executions", params={"limit": 1}).json()) == 1
 
 
-# --- Not an execution attempt: no row ---
+def test_rejected_missing_or_sensor_commands_write_no_execution_row(client):
+    pump = a_pump(client)
+    devices = client.get("/api/devices").json()
+    sensor = next(d for d in devices if d["role"] == "sensor")
 
-def test_missing_device_or_sensor_writes_no_row(client):
-    sensor = next(d for d in kit(client) if d["role"] == "sensor")
-
-    assert apply(client, sensor["id"]).status_code == 400
-    assert apply(client, MISSING_ID).status_code == 404
+    assert send(client, "stop_pump", pump["id"]).status_code == 409    # rejected: never reaches the port
+    assert send(client, "start_pump", sensor["id"]).status_code == 404
+    assert send(client, "start_pump", MISSING_ID).status_code == 404
     assert total_rows() == 0

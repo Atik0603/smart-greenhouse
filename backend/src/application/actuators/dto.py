@@ -13,13 +13,3 @@ class ExecutionDto(BaseModel):
     created_at: datetime
 
 
-class ApplyRequest(BaseModel):
-    command: str
-    payload: dict = Field(default_factory=dict)
-
-
-class AppliedCommandDto(BaseModel):
-    device_id: UUID
-    command: str
-    payload: dict
-    applied_at: datetime | None
