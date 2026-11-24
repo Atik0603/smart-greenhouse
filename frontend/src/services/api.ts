@@ -436,3 +436,41 @@ export async function listCommands(limit = 20): Promise<CommandLogDto[]> {
   if (!res.ok) throw await errorFromResponse(res);
   return res.json();
 }
+
+// --- Phase 11: alerts ---
+
+export type AlertSeverity = "info" | "warning" | "critical";
+
+export interface AlertDto {
+  id: string;
+  location_id: string | null;
+  zone_id: string | null;
+  device_id: string | null;
+  severity: AlertSeverity;
+  message: string;
+  event_type: string;
+  status: "active" | "resolved";
+  created_at: string;
+}
+
+export interface AlertFilters {
+  status?: "active" | "resolved" | "all";
+  locationId?: string;
+  zoneId?: string;
+  since?: string;
+  limit?: number;
+}
+
+export async function listAlerts(filters: AlertFilters = {}): Promise<AlertDto[]> {
+  const params = new URLSearchParams();
+  if (filters.status) params.set("status", filters.status);
+  if (filters.locationId) params.set("location_id", filters.locationId);
+  if (filters.zoneId) params.set("zone_id", filters.zoneId);
+  if (filters.since) params.set("since", filters.since);
+  if (filters.limit) params.set("limit", String(filters.limit));
+  const query = params.toString();
+
+  const res = await fetch(`${API_BASE}/api/alerts${query ? `?${query}` : ""}`);
+  if (!res.ok) throw await errorFromResponse(res);
+  return res.json();
+}

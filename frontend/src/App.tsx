@@ -7,6 +7,8 @@ import StrategyPanel from "./features/automation/StrategyPanel";
 import ExecutionLog from "./features/actuators/ExecutionLog";
 import CommandPanel from "./components/commands/CommandPanel";
 
+import EventFeed from "./components/alerts/EventFeed";
+
 function App() {
   const [configVersion, setConfigVersion] = useState(0);
   const [devicesVersion, setDevicesVersion] = useState(0);
@@ -14,6 +16,9 @@ function App() {
   return (
     <AppLayout>
       <DashboardPage />
+      <section id="events">
+        <EventFeed />
+      </section>
       <section id="devices">
         <DevicesSection
           configVersion={configVersion}
