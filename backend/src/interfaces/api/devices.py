@@ -30,6 +30,8 @@ from src.infrastructure.persistence.actuator_state_repository import ActuatorSta
 from src.infrastructure.persistence.device_repository import DeviceRepository
 from src.infrastructure.persistence.location_repository import LocationRepository
 
+from src.application.events.composition import get_event_bus
+
 router = APIRouter(prefix="/api/devices", tags=["devices"])
 
 
@@ -38,7 +40,7 @@ def get_device_service(db: Session = Depends(get_db)) -> DeviceFamilyService:
 
 
 def get_actuator_state_service(db: Session = Depends(get_db)) -> ActuatorStateService:
-    return ActuatorStateService(DeviceRepository(db), ActuatorStateRepository(db))
+    return ActuatorStateService(DeviceRepository(db), ActuatorStateRepository(db), get_event_bus())
 
 
 @router.get("", response_model=list[DeviceDto])
