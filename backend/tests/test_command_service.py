@@ -15,7 +15,9 @@ NOW = datetime(2026, 1, 1, tzinfo=timezone.utc)
 
 
 def device(role="actuator", device_type="water_pump"):
-    return SimpleNamespace(id=uuid.uuid4(), role=role, device_type=device_type)
+    return SimpleNamespace(
+        id=uuid.uuid4(), role=role, device_type=device_type, location_id=None, zone_id=None
+    )
 
 
 class FakeDevices:
