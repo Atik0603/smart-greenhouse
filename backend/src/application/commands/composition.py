@@ -5,6 +5,7 @@ from src.application.commands.service import CommandService
 from src.infrastructure.persistence.actuator_state_repository import ActuatorStateRepository
 from src.infrastructure.persistence.command_log_repository import CommandLogRepository
 from src.infrastructure.persistence.device_repository import DeviceRepository
+from src.application.events.composition import get_event_bus
 
 
 def build_command_service(db: Session) -> CommandService:
@@ -14,4 +15,5 @@ def build_command_service(db: Session) -> CommandService:
         states=ActuatorStateRepository(db),
         port=build_actuator_port(db),
         log=CommandLogRepository(db),
+        bus=get_event_bus(),
     )

@@ -10,6 +10,8 @@ from src.domain.devices.errors import DeviceNotFoundError
 from src.infrastructure.persistence.actuator_state_repository import ActuatorStateRepository
 from src.infrastructure.persistence.command_log_repository import CommandLogRepository
 from src.infrastructure.persistence.device_repository import DeviceRepository
+from src.domain.events.bus import EventBus
+from src.domain.events.events import ActuatorStateChanged, CommandFailed
 
 MAX_LIMIT = 200
 
@@ -22,12 +24,14 @@ class CommandService:
         port: ActuatorPort,
         log: CommandLogRepository,
         invoker: CommandInvoker | None = None,
+        bus: EventBus | None = None,
     ) -> None:
         self._devices = devices
         self._states = states
         self._port = port
         self._log = log
         self._invoker = invoker or CommandInvoker()
+        self._bus = bus
 
     def submit(self, command_type: str, device_id: UUID, payload: dict) -> CommandLogDto:
         # 1. Only real actuators can receive commands (404, no row)
@@ -52,15 +56,34 @@ class CommandService:
         # 4. Execute through the decorated port (Logging → MaxRunTime → Simulation)
         try:
             self._invoker.run(command, self._port)
-        except PolicyViolationError as exc:
-            return self._record(command, "failed", exc.message)
-        except Exception as exc:                       # adapter error after acceptance
-            return self._record(command, "failed", str(exc))
+        except Exception as exc:                     # policy violation or adapter error
+            message = getattr(exc, "message", None) or str(exc)
+            entry = self._record(command, "failed", message)
+            self._publish(
+                CommandFailed(
+                    device_id=device.id,
+                    location_id=device.location_id,
+                    zone_id=device.zone_id,
+                    command_type=command.command_type,
+                    message=message,
+                )
+            )
+            return entry
 
         # 5. Completed: move the lifecycle only if the target differs
         if command.target_state and command.target_state != context.state:
+            previous = context.state
             context.transition(command.target_state)
             self._states.save_state(device_id, context.state)
+            self._publish(
+                ActuatorStateChanged(
+                    device_id=device.id,
+                    location_id=device.location_id,
+                    zone_id=device.zone_id,
+                    previous_state=previous,
+                    state=context.state,
+                )
+            )
 
         return self._record(command, "success", None)
 
@@ -73,3 +96,7 @@ class CommandService:
             command.command_type, command.device_id, command.payload, status, error
         )
         return CommandLogDto(**record.__dict__)
+
+    def _publish(self, event: object) -> None:
+        if self._bus is not None:
+            self._bus.publish(event)

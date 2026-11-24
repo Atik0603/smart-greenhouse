@@ -8,6 +8,9 @@ from src.domain.devices.errors import DeviceNotFoundError
 from src.infrastructure.persistence.actuator_state_repository import ActuatorStateRepository
 from src.infrastructure.persistence.device_repository import DeviceRepository
 
+from src.domain.events.bus import EventBus
+from src.domain.events.events import ActuatorStateChanged
+
 
 @dataclass(frozen=True)
 class ActuatorStateView:
@@ -16,9 +19,10 @@ class ActuatorStateView:
 
 
 class ActuatorStateService:
-    def __init__(self, devices: DeviceRepository, states: ActuatorStateRepository) -> None:
+    def __init__(self, devices: DeviceRepository, states: ActuatorStateRepository, bus: EventBus | None = None,) -> None:
         self._devices = devices
         self._states = states
+        self._bus = bus
 
     def views_for(self, devices: list[Device]) -> dict[UUID, ActuatorStateView]:
         """State + allowed commands for every actuator in the list (one state query)."""
@@ -35,8 +39,19 @@ class ActuatorStateService:
     def transition(self, device_id: UUID, target: str) -> ActuatorStateView:
         device = self._require_actuator(device_id)
         context = ActuatorContext(device.device_type, self._states.get_state(device_id))
+        previous = context.state
         context.transition(target)                    # illegal → raises, nothing below runs
         self._states.save_state(device_id, context.state)
+        if self._bus is not None:
+            self._bus.publish(
+                ActuatorStateChanged(
+                    device_id=device.id,
+                    location_id=device.location_id,
+                    zone_id=device.zone_id,
+                    previous_state=previous,
+                    state=context.state,
+                )
+            )
         return ActuatorStateView(context.state, context.allowed_commands())
 
     # --- helpers ---

@@ -2,6 +2,8 @@ from dataclasses import replace
 from datetime import datetime
 from typing import Callable
 from uuid import UUID
+from src.domain.events.bus import EventBus
+from src.domain.events.events import ReadingCreated
 
 from src.application.readings.dto import ReadingDto
 from src.application.readings.mappers import reading_to_dto
@@ -23,10 +25,12 @@ class ReadingIngest:
         devices: DeviceRepository,
         readings: ReadingRepository,
         select_adapter: AdapterSelector,
+        bus: EventBus | None = None,
     ) -> None:
         self._devices = devices
         self._readings = readings
         self._select_adapter = select_adapter
+        self._bus = bus
 
     def record(
         self,
@@ -50,7 +54,19 @@ class ReadingIngest:
         if at is not None:
             reading = replace(reading, recorded_at=at)
 
-        saved = self._readings.add(reading)
+        saved =  self._readings.add(reading)
+        if self._bus is not None and device.tracking_enabled:
+            self._bus.publish(
+                ReadingCreated(
+                    device_id=saved.device_id,
+                    value=saved.value,
+                    unit=saved.unit,
+                    source=saved.source,
+                    recorded_at=saved.recorded_at,
+                    location_id=device.location_id,
+                    zone_id=device.zone_id,
+                )
+            )
         return reading_to_dto(saved)
 
     def list_recent(self, device_id: UUID, limit: int = 20) -> list[ReadingDto]:

@@ -9,6 +9,7 @@ from src.infrastructure.adapters.sensors.selector import select_sensor_adapter
 from src.infrastructure.db import SessionLocal
 from src.infrastructure.persistence.device_repository import DeviceRepository
 from src.infrastructure.persistence.reading_repository import ReadingRepository
+from src.application.events.composition import get_event_bus
 
 logger = logging.getLogger(__name__)
 
@@ -25,7 +26,7 @@ def run_sampler_tick() -> int:
     try:
         devices = DeviceRepository(db)
         readings = ReadingRepository(db)
-        ingest = ReadingIngest(devices, readings, select_sensor_adapter)
+        ingest = ReadingIngest(devices, readings, select_sensor_adapter, get_event_bus())
         return SimulationSampler(devices, readings, ingest).run_once(utc_now())
     finally:
         db.close()

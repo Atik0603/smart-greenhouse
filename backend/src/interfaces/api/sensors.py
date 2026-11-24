@@ -13,6 +13,7 @@ from src.application.sensors.service import SensorService, UnknownSensorTypeErro
 from src.infrastructure.db import get_db
 from src.infrastructure.persistence.device_repository import DeviceRepository
 from src.infrastructure.persistence.reading_repository import ReadingRepository
+from src.application.events.composition import get_event_bus
 
 router = APIRouter(prefix="/api/sensors", tags=["sensors"])
 
@@ -46,7 +47,9 @@ def create_sensor(payload: SensorCreateRequest, db: Session = Depends(get_db)):
 
 
 def get_reading_ingest(db: Session = Depends(get_db)) -> ReadingIngest:
-    return ReadingIngest(DeviceRepository(db), ReadingRepository(db), select_sensor_adapter)
+    return ReadingIngest(
+        DeviceRepository(db), ReadingRepository(db), select_sensor_adapter, get_event_bus()
+    )
 
 
 @router.post(
